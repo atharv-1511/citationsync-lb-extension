@@ -520,17 +520,6 @@
     webInput.placeholder = 'e.g. https://www.hallmotorcompany.com';
     append(webGroup, webLabel, webInput);
 
-    // AI Ground Rules Box
-    const rulesBox = el('div', 'cc-rules-box');
-    const rulesList = el('ul');
-    append(rulesList,
-      el('li', '', 'Neutral tone: no salesy or promotional language'),
-      el('li', '', 'No dealer name or address included in outputs'),
-      el('li', '', 'Less proximity: focuses on service offering, not local coordinates'),
-      el('li', '', 'Strict length limits (Description is under 200 characters)')
-    );
-    append(rulesBox, rulesList);
-
     // Generate Button Row
     const genRow = el('div', 'cc-search-row');
     const genBtn = el('button', 'cc-check-btn', 'Generate SEO Content');
@@ -543,7 +532,7 @@
     seoResults.id = 'cc-seo-results';
     seoResults.style.display = 'none';
 
-    append(seoContainer, nameGroup, webGroup, rulesBox, genRow, seoResults);
+    append(seoContainer, nameGroup, webGroup, genRow, seoResults);
 
     // Append both tabs to body
     append(body, tabs, checkerContainer, seoContainer);
@@ -571,10 +560,9 @@
       seoContainer.style.display = 'block';
       checkerContainer.style.display = 'none';
 
-      // Auto-detect if fields are currently empty
-      if (!nameInput.value && !webInput.value) {
+      // Auto-detect website only if empty (no name autofill)
+      if (!webInput.value) {
         const info = autoScrapeDealerInfo();
-        if (info.name) nameInput.value = info.name;
         if (info.website) webInput.value = info.website;
       }
     });
@@ -1087,7 +1075,7 @@ Enforce the following strict rules:
 
       /* ── Search row ── */
       #cc-search-row { display: flex; gap: 8px; margin-bottom: 12px; }
-      #cc-check-btn {
+      #cc-check-btn, #cc-seo-gen-btn {
         background: #ff7a00;
         border: 1px solid #e06c00;
         border-radius: 6px;
@@ -1101,16 +1089,16 @@ Enforce the following strict rules:
         transition: background .15s, border-color .15s, transform .1s, box-shadow .15s;
         box-shadow: 0 2px 4px rgba(255,122,0,0.1);
       }
-      #cc-check-btn:hover {
+      #cc-check-btn:hover, #cc-seo-gen-btn:hover {
         background: #f97316;
         border-color: #ea580c;
         box-shadow: 0 4px 8px rgba(255,122,0,0.2);
       }
-      #cc-check-btn:active {
+      #cc-check-btn:active, #cc-seo-gen-btn:active {
         transform: scale(0.98);
         box-shadow: 0 1px 2px rgba(255,122,0,0.1);
       }
-      #cc-check-btn:disabled {
+      #cc-check-btn:disabled, #cc-seo-gen-btn:disabled {
         background: #cbd5e1;
         border-color: #cbd5e1;
         color: #94a3b8;
