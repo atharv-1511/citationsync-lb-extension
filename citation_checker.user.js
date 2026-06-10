@@ -613,14 +613,25 @@
     genBtn.appendChild(el('span', 'cc-spinner'));
     genBtn.disabled = true;
 
-    try {
-      const p1 = 'AQ.Ab8RN6IXrw3x';
-      const p2 = 'TgTnGxLqqDh0T_4Zp_Aqa4aDqg4Pz_USZ3UKlg';
-      const apiKey = p1 + p2;
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
-      const seed = Date.now() + Math.random();
+    const models = [
+      'gemini-2.5-flash',
+      'gemini-3.5-flash',
+      'gemini-2.5-flash-lite',
+      'gemini-3.1-flash-lite'
+    ];
 
-      const prompt = `You are an expert SEO assistant. Generate local directory listing metadata for:
+    let lastError = null;
+    let successData = null;
+
+    for (const modelName of models) {
+      try {
+        const p1 = 'AQ.Ab8RN6IXrw3x';
+        const p2 = 'TgTnGxLqqDh0T_4Zp_Aqa4aDqg4Pz_USZ3UKlg';
+        const apiKey = p1 + p2;
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+        const seed = Date.now() + Math.random();
+
+        const prompt = `You are an expert SEO assistant. Generate local directory listing metadata for:
 Dealer Name: ${name}
 Dealer Website: ${website}
 
@@ -637,45 +648,56 @@ Enforce the following strict rules:
 5. Emphasize "Less Proximity" (do not focus heavily on hyper-local proximity/neighborhood names).
 6. Every time this is run, generate a different variation of description style. Seed: ${seed}`;
 
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          contents: [{
-            parts: [{
-              text: prompt
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            contents: [{
+              parts: [{
+                text: prompt
+              }]
             }]
-          }]
-        })
-      });
+          })
+        });
 
-      if (!response.ok) {
-        let errorMsg = 'HTTP error ' + response.status;
-        try {
-          const errData = await response.json();
-          if (errData && errData.error && errData.error.message) {
-            errorMsg = errData.error.message;
-          }
-        } catch (_) {
+        if (!response.ok) {
+          let errorMsg = 'HTTP error ' + response.status;
           try {
-            const errText = await response.text();
-            if (errText) errorMsg = errText.substring(0, 200);
-          } catch (_) {}
+            const errData = await response.json();
+            if (errData && errData.error && errData.error.message) {
+              errorMsg = errData.error.message;
+            }
+          } catch (_) {
+            try {
+              const errText = await response.text();
+              if (errText) errorMsg = errText.substring(0, 200);
+            } catch (_) {}
+          }
+          throw new Error(errorMsg);
         }
-        throw new Error('API call failed: ' + errorMsg);
+
+        const data = await response.json();
+        if (!data.candidates || data.candidates.length === 0) {
+          throw new Error('No generation candidates returned.');
+        }
+
+        const text = data.candidates[0].content.parts[0].text;
+        successData = parseGeminiJson(text);
+        break;
+      } catch (err) {
+        lastError = err;
+        console.warn(`[Citation Sync] Model ${modelName} failed, trying next fallback... Error:`, err.message);
       }
+    }
 
-      const data = await response.json();
-      if (!data.candidates || data.candidates.length === 0) {
-        throw new Error('No generation candidates returned.');
+    try {
+      if (successData) {
+        renderSeoResults(seoResults, successData);
+      } else {
+        throw lastError || new Error('All fallback models failed.');
       }
-
-      const text = data.candidates[0].content.parts[0].text;
-      const result = parseGeminiJson(text);
-
-      renderSeoResults(seoResults, result);
     } catch (err) {
       showError(seoResults, 'Failed to generate SEO content: ' + err.message);
     } finally {
