@@ -645,7 +645,7 @@
       const p1 = 'AQ.Ab8RN6IXrw3x';
       const p2 = 'TgTnGxLqqDh0T_4Zp_Aqa4aDqg4Pz_USZ3UKlg';
       const apiKey = p1 + p2;
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
       const seed = Date.now() + Math.random();
 
       const prompt = `You are an expert SEO assistant. Generate local directory listing metadata for:
@@ -680,7 +680,19 @@ Enforce the following strict rules:
       });
 
       if (!response.ok) {
-        throw new Error('API call failed: ' + response.statusText);
+        let errorMsg = 'HTTP error ' + response.status;
+        try {
+          const errData = await response.json();
+          if (errData && errData.error && errData.error.message) {
+            errorMsg = errData.error.message;
+          }
+        } catch (_) {
+          try {
+            const errText = await response.text();
+            if (errText) errorMsg = errText.substring(0, 200);
+          } catch (_) {}
+        }
+        throw new Error('API call failed: ' + errorMsg);
       }
 
       const data = await response.json();
