@@ -520,22 +520,16 @@
     webInput.placeholder = 'e.g. https://www.hallmotorcompany.com';
     append(webGroup, webLabel, webInput);
 
-    // Auto-detect Row
-    const scrapeRow = el('div', 'cc-scrape-row');
-    const scrapeBtn = el('button', 'cc-subtle-btn', '🔍 Auto-Detect from Sheet');
-    append(scrapeRow, scrapeBtn);
-
     // AI Ground Rules Box
     const rulesBox = el('div', 'cc-rules-box');
-    const rulesTitle = el('div', 'cc-rules-title', 'AI Ground Rules Enforced');
     const rulesList = el('ul');
     append(rulesList,
       el('li', '', 'Neutral tone: no salesy or promotional language'),
-      el('li', '', 'No dealer address included in outputs'),
+      el('li', '', 'No dealer name or address included in outputs'),
       el('li', '', 'Less proximity: focuses on service offering, not local coordinates'),
       el('li', '', 'Strict length limits (Description is under 200 characters)')
     );
-    append(rulesBox, rulesTitle, rulesList);
+    append(rulesBox, rulesList);
 
     // Generate Button Row
     const genRow = el('div', 'cc-search-row');
@@ -549,7 +543,7 @@
     seoResults.id = 'cc-seo-results';
     seoResults.style.display = 'none';
 
-    append(seoContainer, nameGroup, webGroup, scrapeRow, rulesBox, genRow, seoResults);
+    append(seoContainer, nameGroup, webGroup, rulesBox, genRow, seoResults);
 
     // Append both tabs to body
     append(body, tabs, checkerContainer, seoContainer);
@@ -583,16 +577,6 @@
         if (info.name) nameInput.value = info.name;
         if (info.website) webInput.value = info.website;
       }
-    });
-
-    // Manual auto-detect click
-    scrapeBtn.addEventListener('click', () => {
-      const info = autoScrapeDealerInfo();
-      nameInput.value = info.name || '';
-      webInput.value = info.website || '';
-      // Visual feedback
-      scrapeBtn.textContent = 'Detected!';
-      setTimeout(() => { scrapeBtn.textContent = '🔍 Auto-Detect from Sheet'; }, 1000);
     });
 
     checkBtn.addEventListener('click', runCheck);
@@ -661,7 +645,7 @@ Enforce the following strict rules:
 1. The description must be under 200 characters.
 2. Avoid any salesy, promotional, or vague language (do not use words like 'best', 'greatest', 'deal', 'special', 'buy now', 'number one', 'award-winning').
 3. Keep the language neutral, objective, and professional.
-4. Do not include the dealer's address or location details (like street name, city, zip) in the description or meta description.
+4. Do not include the dealer's name (${name}), address, or location details (like street name, city, zip) anywhere in the description or meta description.
 5. Emphasize "Less Proximity" (do not focus heavily on hyper-local proximity/neighborhood names).
 6. Every time this is run, generate a different variation of description style. Seed: ${seed}`;
 
@@ -1105,18 +1089,35 @@ Enforce the following strict rules:
       #cc-search-row { display: flex; gap: 8px; margin-bottom: 12px; }
       #cc-check-btn {
         background: #ff7a00;
-        border: none;
-        border-radius: 8px;
+        border: 1px solid #e06c00;
+        border-radius: 6px;
         color: #ffffff;
         font-size: 13px;
         font-weight: 600;
-        padding: 8px 16px;
+        padding: 10px 20px;
         cursor: pointer;
         white-space: nowrap;
         font-family: inherit;
-        transition: background .15s;
+        transition: background .15s, border-color .15s, transform .1s, box-shadow .15s;
+        box-shadow: 0 2px 4px rgba(255,122,0,0.1);
       }
-      #cc-check-btn:hover { background: #e06c00; }
+      #cc-check-btn:hover {
+        background: #f97316;
+        border-color: #ea580c;
+        box-shadow: 0 4px 8px rgba(255,122,0,0.2);
+      }
+      #cc-check-btn:active {
+        transform: scale(0.98);
+        box-shadow: 0 1px 2px rgba(255,122,0,0.1);
+      }
+      #cc-check-btn:disabled {
+        background: #cbd5e1;
+        border-color: #cbd5e1;
+        color: #94a3b8;
+        cursor: not-allowed;
+        box-shadow: none;
+        transform: none;
+      }
 
       /* ── Paste area ── */
       #cc-paste-area {
@@ -1174,18 +1175,7 @@ Enforce the following strict rules:
         box-sizing: border-box;
       }
       .cc-text-input:focus { border-color: #ff7a00; box-shadow: 0 0 0 3px rgba(255,122,0,0.15); }
-      .cc-subtle-btn {
-        background: none;
-        border: none;
-        color: #ff7a00;
-        font-size: 11px;
-        font-weight: 600;
-        cursor: pointer;
-        padding: 4px 0;
-        font-family: inherit;
-      }
-      .cc-subtle-btn:hover { text-decoration: underline; color: #e06c00; }
-      .cc-scrape-row { display: flex; justify-content: flex-end; margin-bottom: 12px; }
+      /* cc-subtle-btn and cc-scrape-row removed */
       .cc-rules-box {
         background: #fffbeb;
         border: 1px solid #fef3c7;
@@ -1216,17 +1206,26 @@ Enforce the following strict rules:
       }
       .cc-seo-output-title { font-size: 11px; font-weight: 700; color: #475569; text-transform: uppercase; }
       .cc-seo-output-copy {
-        background: #f1f5f9;
+        background: #ffffff;
         border: 1px solid #cbd5e1;
-        border-radius: 4px;
+        border-radius: 6px;
         color: #475569;
-        font-size: 10px;
-        padding: 2px 6px;
+        font-size: 11px;
+        padding: 4px 10px;
         cursor: pointer;
         font-family: inherit;
         font-weight: 600;
+        transition: background .15s, border-color .15s;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.02);
       }
-      .cc-seo-output-copy:hover { background: #e2e8f0; }
+      .cc-seo-output-copy:hover {
+        background: #f8fafc;
+        border-color: #94a3b8;
+        color: #1e293b;
+      }
+      .cc-seo-output-copy:active {
+        background: #f1f5f9;
+      }
       .cc-seo-output-text {
         font-size: 12px;
         color: #1e293b;
@@ -1357,14 +1356,20 @@ Enforce the following strict rules:
         color: #334155;
         font-size: 13px;
         font-weight: 600;
-        padding: 10px;
+        padding: 11px;
         cursor: pointer;
         margin-top: 12px;
         font-family: inherit;
-        transition: background .15s, border-color .15s;
+        transition: background .15s, border-color .15s, transform .1s;
         box-shadow: 0 1px 2px rgba(0,0,0,0.02);
       }
-      .cc-export-btn:hover { background: #f8fafc; border-color: #cbd5e1; }
+      .cc-export-btn:hover {
+        background: #f8fafc;
+        border-color: #94a3b8;
+      }
+      .cc-export-btn:active {
+        transform: scale(0.99);
+      }
 
       /* ── Source note ── */
       .cc-source-note {
