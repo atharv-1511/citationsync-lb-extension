@@ -1,9 +1,11 @@
 // ==UserScript==
 // @name         Citation Sync
 // @namespace    https://lb-extension.local/
-// @version      3.1
+// @version      3.2
 // @description  Citation Sync: instantly identify which of the 127 master citation directories are listed vs. missing for any dealer — works on Google Sheets, Excel Online, SharePoint, and more.
 // @author       Atharv Raskar
+// @updateURL    https://raw.githubusercontent.com/atharv-1511/citationsync-lb-extension/main/citation_checker.user.js
+// @downloadURL  https://raw.githubusercontent.com/atharv-1511/citationsync-lb-extension/main/citation_checker.user.js
 //
 // ── Microsoft Office / Excel Online ──────────────────────────────────────────
 // @match        https://excel.officeapps.live.com/*
