@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Citation Sync
 // @namespace    https://lb-extension.local/
-// @version      3.3
+// @version      3.4
 // @description  Citation Sync: instantly identify which of the 127 master citation directories are listed vs. missing for any dealer — works on Google Sheets, Excel Online, SharePoint, and more.
 // @author       Atharv Raskar
 // @updateURL    https://raw.githubusercontent.com/atharv-1511/citationsync-lb-extension/main/citation_checker.user.js
@@ -634,21 +634,37 @@
                      doc.querySelector('meta[name="twitter:description"]');
       const metaDesc = descEl ? descEl.getAttribute('content') : '';
 
+      const keysEl = doc.querySelector('meta[name="keywords"]') || 
+                     doc.querySelector('meta[property="og:keywords"]');
+      const metaKeys = keysEl ? keysEl.getAttribute('content') : '';
+
       const texts = [];
       const els = doc.querySelectorAll('h1, h2, h3, p, li');
       for (const el of els) {
+        // Skip common navigation, header, footer, or sidebar selectors
+        if (el.closest('header') || el.closest('footer') || el.closest('nav') || 
+            el.closest('#header') || el.closest('#footer') || el.closest('#nav') ||
+            el.closest('.header') || el.closest('.footer') || el.closest('.nav') || 
+            el.closest('.menu') || el.closest('.navigation') || el.closest('.sidebar')) {
+          continue;
+        }
         const t = el.textContent.trim().replace(/\s+/g, ' ');
         if (t.length > 20 && t.length < 250) {
-          texts.push(t);
+          if (!texts.includes(t)) {
+            texts.push(t);
+          }
         }
-        if (texts.length >= 10) break;
+        if (texts.length >= 15) break;
       }
 
-      return {
+      const result = {
         title: title.trim(),
         metaDescription: metaDesc ? metaDesc.trim() : '',
+        metaKeywords: metaKeys ? metaKeys.trim() : '',
         visibleTextSnippet: texts.join(' | ')
       };
+      console.log('[Citation Sync] Extracted website context:', result);
+      return result;
     } catch (e) {
       console.warn('[Citation Sync] Error parsing HTML:', e);
       return null;
@@ -713,9 +729,10 @@
 Here is some context scraped from the dealer's website (${website}):
 - Page Title: "${webContext.title}"
 - Page Description: "${webContext.metaDescription}"
+- Page Keywords: "${webContext.metaKeywords || ''}"
 - Text Snippets: "${webContext.visibleTextSnippet}"
 
-Use this website context to learn what brands, services, and types of vehicles/parts this dealer handles, and write the description and meta keywords matching that exact context.`;
+Use this website context to learn exactly what automotive brands, vehicle types (cars, trucks, SUVs), and services (maintenance, repair, financing, parts) this dealer handles, and write the description and meta keywords matching that exact context.`;
         }
 
         const prompt = `You are an expert SEO assistant. Generate local directory listing metadata for a dealership:
@@ -730,12 +747,14 @@ Please output the result strictly in JSON format with three keys:
 
 Enforce the following strict rules:
 1. The description must be under 200 characters.
-2. Avoid any salesy, promotional, or vague language (do not use words like 'best', 'greatest', 'deal', 'special', 'buy now', 'number one', 'award-winning').
-3. Keep the language neutral, objective, and professional.
-4. Do not include the dealer's name (${name}), address, or location details (like street name, city, zip) anywhere in the description or meta description.
-5. Emphasize "Less Proximity" (do not focus heavily on hyper-local proximity/neighborhood names).
-6. Tone: Use an extremely simple, plain, and direct tone.
-7. Sentence structure: Use basic sentence formations (e.g. "We offer new and used vehicles. Our team provides auto repair and parts." instead of compound sentences or marketing hooks). Write in plain, direct language.
+2. Avoid any salesy, promotional, or vague language (do not use words like 'best', 'greatest', 'deal', 'special', 'buy now', 'number one', 'award-winning', 'friendly', 'expert', 'top-quality', 'experience'). Keep the language completely neutral, objective, and professional.
+3. Do not include the dealer's name (${name}), address, or location details (like street name, city, zip, or region) anywhere in the description or meta description.
+4. Emphasize "Less Proximity" (do not focus heavily on hyper-local proximity/neighborhood names).
+5. Tone: Use an extremely simple, plain, and direct tone. Write at a very basic reading level.
+6. Sentence structure: Use basic sentence formations. Write in short, simple sentences (Subject-Verb-Object). Avoid compound or complex sentences. Avoid conjunctions like "and", "but", "or", "which", "that" to join clauses where possible. Write in plain, direct language.
+   - Good Example: "This store sells new and used vehicles. They offer auto repair and maintenance. They also provide replacement parts." (Short, simple sentences, factual, no dealer name, no location).
+   - Bad Example: "Welcome to our dealership, where we offer the best deals on new Ford trucks and expert service." (Salesy, complex sentence, contains marketing hooks).
+7. The metaDescription must also follow these rules and be under 160 characters.
 8. Every time this is run, generate a different variation of description style. Seed: ${seed}`;
 
         const response = await fetch(url, {
