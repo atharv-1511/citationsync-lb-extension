@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Citation Sync
 // @namespace    https://lb-extension.local/
-// @version      3.4
+// @version      3.5
 // @description  Citation Sync: instantly identify which of the 127 master citation directories are listed vs. missing for any dealer — works on Google Sheets, Excel Online, SharePoint, and more.
 // @author       Atharv Raskar
 // @updateURL    https://raw.githubusercontent.com/atharv-1511/citationsync-lb-extension/main/citation_checker.user.js
@@ -741,21 +741,32 @@ Dealer Website: ${website}
 ${contextString}
 
 Please output the result strictly in JSON format with three keys:
-- "description": A business description under 200 characters.
-- "metaDescription": A meta description under 160 characters.
-- "metaKeywords": A comma-separated list of 5-8 relevant meta keywords.
+- "description": A business description under 215 characters.
+- "metaDescription": A meta description under 215 characters.
+- "metaKeywords": A comma-separated list of 8-12 relevant meta keywords.
 
-Enforce the following strict rules:
-1. The description must be under 200 characters.
-2. Avoid any salesy, promotional, or vague language (do not use words like 'best', 'greatest', 'deal', 'special', 'buy now', 'number one', 'award-winning', 'friendly', 'expert', 'top-quality', 'experience'). Keep the language completely neutral, objective, and professional.
-3. Do not include the dealer's name (${name}), address, or location details (like street name, city, zip, or region) anywhere in the description or meta description.
-4. Emphasize "Less Proximity" (do not focus heavily on hyper-local proximity/neighborhood names).
-5. Tone: Use an extremely simple, plain, and direct tone. Write at a very basic reading level.
-6. Sentence structure: Use basic sentence formations. Write in short, simple sentences (Subject-Verb-Object). Avoid compound or complex sentences. Avoid conjunctions like "and", "but", "or", "which", "that" to join clauses where possible. Write in plain, direct language.
-   - Good Example: "This store sells new and used vehicles. They offer auto repair and maintenance. They also provide replacement parts." (Short, simple sentences, factual, no dealer name, no location).
-   - Bad Example: "Welcome to our dealership, where we offer the best deals on new Ford trucks and expert service." (Salesy, complex sentence, contains marketing hooks).
-7. The metaDescription must also follow these rules and be under 160 characters.
-8. Every time this is run, generate a different variation of description style. Seed: ${seed}`;
+Strictly enforce the following rules and format patterns:
+
+1. Description Format Pattern (substitute actual manufacturer brands and services based on website context or fallback to general terms if none are found):
+   Pattern: "Explore new and pre-owned [brand] [vehicle types (e.g. cars, trucks, and SUVs)] with [service 1 (e.g. flexible financing)], [service 2 (e.g. certified maintenance and repair services)], [service 3 (e.g. routine vehicle care)], and [service 4 (e.g. genuine OEM parts and accessories support)]"
+   Length constraint: The description must be under 215 characters.
+   Strict rule: Do not use any other sentence structure than this exact pattern.
+
+2. Meta Description Format Pattern (substitute actual manufacturer brands and services based on website context or fallback to general terms if none are found):
+   Pattern: "Browse [brand] [vehicle types (e.g. cars, trucks, and SUVs)] with [service 1 (e.g. tailored financing)], [service 2 (e.g. expert maintenance and repair services)], [service 3 (e.g. scheduled vehicle care)], and [service 4 (e.g. genuine OEM parts and accessories)] for dependable performance and value."
+   Length constraint: The metaDescription must be under 215 characters.
+   Strict rule: Do not use any other sentence structure than this exact pattern.
+
+3. Meta Keywords Format Pattern:
+   Pattern: "[Brand] vehicles, new [brand] inventory, used [brand] cars, [brand] trucks and SUVs, auto financing options, certified service center, [service keyword 1], [service keyword 2], OEM parts, accessories support"
+   Strict rule: Follow this exact template substituting the actual brand and key services.
+
+4. Exclusions:
+   - Do not include the dealer's specific business name (${name}), address, or location details (like street name, city, zip, or region) anywhere in the description or meta description. Listing the car manufacturer brands (e.g. Chevrolet, Ford, Toyota) is allowed and encouraged based on the website context.
+   - Avoid general salesy/marketing hooks (like "best deals", "number one", "buy now", "award-winning", "friendly", "top-quality", "experience"). Keep terms factual (e.g., use "flexible financing", "certified maintenance", "expert repair" as in the patterns).
+
+5. Variation Generation:
+   Every time this is run, generate a slightly different variation of description/meta keywords details while strictly adhering to the patterns. Seed: ${seed}`;
 
         const response = await fetch(url, {
           method: 'POST',
@@ -822,8 +833,8 @@ Enforce the following strict rules:
     // Description
     const descGroup = el('div', 'cc-seo-output-group');
     const descHeader = el('div', 'cc-seo-output-header');
-    const descTitle = el('span', 'cc-seo-output-title', `Description (${result.description.length} / 200 chars)`);
-    if (result.description.length > 200) {
+    const descTitle = el('span', 'cc-seo-output-title', `Description (${result.description.length} / 215 chars)`);
+    if (result.description.length > 215) {
       descTitle.style.color = '#ef4444';
     }
     const descCopy = el('button', 'cc-seo-output-copy', 'Copy');
@@ -841,7 +852,10 @@ Enforce the following strict rules:
     // Meta Description
     const metaGroup = el('div', 'cc-seo-output-group');
     const metaHeader = el('div', 'cc-seo-output-header');
-    const metaTitle = el('span', 'cc-seo-output-title', `Meta Description (${result.metaDescription.length} / 160 chars)`);
+    const metaTitle = el('span', 'cc-seo-output-title', `Meta Description (${result.metaDescription.length} / 215 chars)`);
+    if (result.metaDescription.length > 215) {
+      metaTitle.style.color = '#ef4444';
+    }
     const metaCopy = el('button', 'cc-seo-output-copy', 'Copy');
     metaCopy.addEventListener('click', () => {
       navigator.clipboard.writeText(result.metaDescription).then(() => {
