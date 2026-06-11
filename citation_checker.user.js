@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Citation Sync
 // @namespace    https://lb-extension.local/
-// @version      3.5
+// @version      3.6
 // @description  Citation Sync: instantly identify which of the 127 master citation directories are listed vs. missing for any dealer — works on Google Sheets, Excel Online, SharePoint, and more.
 // @author       Atharv Raskar
 // @updateURL    https://raw.githubusercontent.com/atharv-1511/citationsync-lb-extension/main/citation_checker.user.js
@@ -745,28 +745,29 @@ Please output the result strictly in JSON format with three keys:
 - "metaDescription": A meta description under 215 characters.
 - "metaKeywords": A comma-separated list of 8-12 relevant meta keywords.
 
-Strictly enforce the following rules and format patterns:
+Strictly enforce the following rules:
 
-1. Description Format Pattern (substitute actual manufacturer brands and services based on website context or fallback to general terms if none are found):
-   Pattern: "Explore new and pre-owned [brand] [vehicle types (e.g. cars, trucks, and SUVs)] with [service 1 (e.g. flexible financing)], [service 2 (e.g. certified maintenance and repair services)], [service 3 (e.g. routine vehicle care)], and [service 4 (e.g. genuine OEM parts and accessories support)]"
-   Length constraint: The description must be under 215 characters.
-   Strict rule: Do not use any other sentence structure than this exact pattern.
+1. Tone and Simplicity (Reference Tone Examples):
+   We want the tone to match the following examples (factual, direct list of services, including the manufacturer brand, using objective language):
+   - Example Description: "Explore new and pre-owned chevrolet cars, trucks, and SUVs with flexible financing, certified maintenance and repair services, routine vehicle care, and genuine GM OEM parts and accessories support"
+   - Example Meta Description: "Browse chevrolet cars, trucks, and SUVs with tailored financing, expert maintenance and repair services, scheduled vehicle care, and genuine GM OEM parts and accessories for dependable performance and value."
+   - Example Meta Keywords: "Chevrolet vehicles, new chevy inventory, used chevrolet cars, chevy trucks and SUVs, auto financing options, certified service center, oil change, brake repair, GM OEM parts, accessories support"
 
-2. Meta Description Format Pattern (substitute actual manufacturer brands and services based on website context or fallback to general terms if none are found):
-   Pattern: "Browse [brand] [vehicle types (e.g. cars, trucks, and SUVs)] with [service 1 (e.g. tailored financing)], [service 2 (e.g. expert maintenance and repair services)], [service 3 (e.g. scheduled vehicle care)], and [service 4 (e.g. genuine OEM parts and accessories)] for dependable performance and value."
-   Length constraint: The metaDescription must be under 215 characters.
-   Strict rule: Do not use any other sentence structure than this exact pattern.
+   Match this tone, vocabulary level, and style, but do NOT copy the exact layout, structure, or starting words (like "Explore new and" or "Browse") every time. Vary the layouts, sentence structures, and vocabulary arrangements to ensure unique descriptions for different dealers and runs.
 
-3. Meta Keywords Format Pattern:
-   Pattern: "[Brand] vehicles, new [brand] inventory, used [brand] cars, [brand] trucks and SUVs, auto financing options, certified service center, [service keyword 1], [service keyword 2], OEM parts, accessories support"
-   Strict rule: Follow this exact template substituting the actual brand and key services.
+2. Sentence structure:
+   Use basic, direct sentence formations. Keep them clean, simple, and list the actual services, vehicle types, and manufacturer brands (e.g., Ford, Chevrolet, Toyota) found in the scraped website context.
 
-4. Exclusions:
+3. Exclusions:
    - Do not include the dealer's specific business name (${name}), address, or location details (like street name, city, zip, or region) anywhere in the description or meta description. Listing the car manufacturer brands (e.g. Chevrolet, Ford, Toyota) is allowed and encouraged based on the website context.
-   - Avoid general salesy/marketing hooks (like "best deals", "number one", "buy now", "award-winning", "friendly", "top-quality", "experience"). Keep terms factual (e.g., use "flexible financing", "certified maintenance", "expert repair" as in the patterns).
+   - Avoid salesy/marketing hooks (like "best deals", "number one", "buy now", "award-winning", "friendly", "top-quality", "experience"). Keep terms factual (e.g., "flexible financing", "certified maintenance", "expert repair").
+
+4. Character Limits:
+   - Description must be under 215 characters.
+   - Meta Description must be under 215 characters.
 
 5. Variation Generation:
-   Every time this is run, generate a slightly different variation of description/meta keywords details while strictly adhering to the patterns. Seed: ${seed}`;
+   Every time this is run, generate a different variation of description, meta description, and keywords. Seed: ${seed}`;
 
         const response = await fetch(url, {
           method: 'POST',
