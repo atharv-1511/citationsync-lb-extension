@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Citation Sync
 // @namespace    https://lb-extension.local/
-// @version      3.2
+// @version      3.3
 // @description  Citation Sync: instantly identify which of the 127 master citation directories are listed vs. missing for any dealer — works on Google Sheets, Excel Online, SharePoint, and more.
 // @author       Atharv Raskar
 // @updateURL    https://raw.githubusercontent.com/atharv-1511/citationsync-lb-extension/main/citation_checker.user.js
@@ -56,6 +56,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // @grant        GM_addStyle
 // @grant        unsafeWindow
+// @grant        GM_xmlhttpRequest
 // @run-at       document-idle
 // ==/UserScript==
 
@@ -592,6 +593,68 @@
     }
   }
 
+  function fetchWebsiteHtml(url) {
+    return new Promise((resolve) => {
+      if (!url) return resolve('');
+      let targetUrl = url.trim();
+      if (!/^https?:\/\//i.test(targetUrl)) {
+        targetUrl = 'https://' + targetUrl;
+      }
+      if (typeof GM_xmlhttpRequest === 'undefined') {
+        console.warn('[Citation Sync] GM_xmlhttpRequest is not defined.');
+        return resolve('');
+      }
+      GM_xmlhttpRequest({
+        method: "GET",
+        url: targetUrl,
+        timeout: 6000,
+        onload: function(response) {
+          if (response.status >= 200 && response.status < 300) {
+            resolve(response.responseText || '');
+          } else {
+            resolve('');
+          }
+        },
+        onerror: function() { resolve(''); },
+        ontimeout: function() { resolve(''); }
+      });
+    });
+  }
+
+  function extractContextFromHtml(htmlString) {
+    if (!htmlString) return null;
+    try {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(htmlString, 'text/html');
+
+      const title = doc.querySelector('title') ? doc.querySelector('title').textContent : '';
+      
+      const descEl = doc.querySelector('meta[name="description"]') || 
+                     doc.querySelector('meta[property="og:description"]') ||
+                     doc.querySelector('meta[name="twitter:description"]');
+      const metaDesc = descEl ? descEl.getAttribute('content') : '';
+
+      const texts = [];
+      const els = doc.querySelectorAll('h1, h2, h3, p, li');
+      for (const el of els) {
+        const t = el.textContent.trim().replace(/\s+/g, ' ');
+        if (t.length > 20 && t.length < 250) {
+          texts.push(t);
+        }
+        if (texts.length >= 10) break;
+      }
+
+      return {
+        title: title.trim(),
+        metaDescription: metaDesc ? metaDesc.trim() : '',
+        visibleTextSnippet: texts.join(' | ')
+      };
+    } catch (e) {
+      console.warn('[Citation Sync] Error parsing HTML:', e);
+      return null;
+    }
+  }
+
   async function runSeoGeneration() {
     const nameInput = document.getElementById('cc-seo-name');
     const webInput = document.getElementById('cc-seo-website');
@@ -613,6 +676,19 @@
     genBtn.appendChild(el('span', 'cc-spinner'));
     genBtn.disabled = true;
 
+    // ── Try scraping dealer website for context ─────────────
+    let webContext = null;
+    if (website) {
+      try {
+        const html = await fetchWebsiteHtml(website);
+        if (html) {
+          webContext = extractContextFromHtml(html);
+        }
+      } catch (e) {
+        console.warn('[Citation Sync] Failed to scrape website context:', e);
+      }
+    }
+
     const models = [
       'gemini-2.5-flash',
       'gemini-3.5-flash',
@@ -631,9 +707,21 @@
         const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
         const seed = Date.now() + Math.random();
 
-        const prompt = `You are an expert SEO assistant. Generate local directory listing metadata for:
+        let contextString = '';
+        if (webContext) {
+          contextString = `
+Here is some context scraped from the dealer's website (${website}):
+- Page Title: "${webContext.title}"
+- Page Description: "${webContext.metaDescription}"
+- Text Snippets: "${webContext.visibleTextSnippet}"
+
+Use this website context to learn what brands, services, and types of vehicles/parts this dealer handles, and write the description and meta keywords matching that exact context.`;
+        }
+
+        const prompt = `You are an expert SEO assistant. Generate local directory listing metadata for a dealership:
 Dealer Name: ${name}
 Dealer Website: ${website}
+${contextString}
 
 Please output the result strictly in JSON format with three keys:
 - "description": A business description under 200 characters.
@@ -646,7 +734,9 @@ Enforce the following strict rules:
 3. Keep the language neutral, objective, and professional.
 4. Do not include the dealer's name (${name}), address, or location details (like street name, city, zip) anywhere in the description or meta description.
 5. Emphasize "Less Proximity" (do not focus heavily on hyper-local proximity/neighborhood names).
-6. Every time this is run, generate a different variation of description style. Seed: ${seed}`;
+6. Tone: Use an extremely simple, plain, and direct tone.
+7. Sentence structure: Use basic sentence formations (e.g. "We offer new and used vehicles. Our team provides auto repair and parts." instead of compound sentences or marketing hooks). Write in plain, direct language.
+8. Every time this is run, generate a different variation of description style. Seed: ${seed}`;
 
         const response = await fetch(url, {
           method: 'POST',
